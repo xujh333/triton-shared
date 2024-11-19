@@ -21,6 +21,7 @@
 #include "mlir/Dialect/Linalg/IR/Linalg.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Utils/ReshapeOpsUtils.h"
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 
 #include "llvm/ADT/SmallVectorExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -28,6 +29,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/MathExtras.h"
 
+#include <iostream>
 #include <numeric>
 #include <optional>
 #include <type_traits>
@@ -1734,12 +1736,22 @@ public:
     assert(axis < LAUNCH_GRID_RANK && "program_id expects "
                                       "axis to be either 0, "
                                       "1, or 2");
-
-    auto func = op->getParentOfType<FunctionOpInterface>();
-    auto numArgs = func.getNumArguments();
-    auto id = func.getArgument(numArgs - LAUNCH_GRID_RANK + axis);
-
-    rewriter.replaceOp(op, id);
+    op.dump();
+    // auto func = op->getParentOfType<FunctionOpInterface>();
+    // auto numArgs = func.getNumArguments();
+    // auto id = func.getArgument(numArgs - LAUNCH_GRID_RANK + axis);
+    std::array<gpu::Dimension, 3> dimAttr{gpu::Dimension::x, gpu::Dimension::y,
+                                          gpu::Dimension::z};
+    auto newOp = rewriter.create<gpu::BlockIdOp>(op.getLoc(), dimAttr[axis]);
+    auto cast = rewriter.create<arith::IndexCastOp>(op.getLoc(), op.getType(), newOp);
+    newOp.dump(); 
+    cast.dump();                             
+    //rewriter.replaceOpWithNewOp<gpu::BlockIdOp>(op, dimAttr[axis]);
+    rewriter.replaceOp(op, cast);
+    rewriter.replaceAllUsesWith(op, cast);
+    auto parent = op->getParentOp();
+    //rewriter.eraseOp(op);
+    parent->dump();
     return success();
   }
 };

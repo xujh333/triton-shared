@@ -5,6 +5,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Dialect/GPU/IR/GPUDialect.h"
 #include "triton-shared/Analysis/UseAnalysis.h"
 #include "triton-shared/Conversion/TritonToLinalg/TritonToLinalg.h"
 #include "triton-shared/Dialect/TritonTilingExt/IR/TritonTilingExtDialect.h"
@@ -91,7 +92,8 @@ public:
         .insert<func::FuncDialect, arith::ArithDialect, math::MathDialect,
                 linalg::LinalgDialect, affine::AffineDialect, scf::SCFDialect,
                 tensor::TensorDialect, bufferization::BufferizationDialect,
-                memref::MemRefDialect, ttx::TritonTilingExtDialect>();
+                memref::MemRefDialect, ttx::TritonTilingExtDialect,
+                gpu::GPUDialect>();
   }
 
   void runOnOperation() override {
@@ -120,7 +122,7 @@ public:
         linalg::LinalgDialect, affine::AffineDialect, scf::SCFDialect,
         cf::ControlFlowDialect, tensor::TensorDialect,
         bufferization::BufferizationDialect, memref::MemRefDialect,
-        ttx::TritonTilingExtDialect>();
+        ttx::TritonTilingExtDialect, gpu::GPUDialect>();
 
     target.addLegalOp<ModuleOp>();
 
