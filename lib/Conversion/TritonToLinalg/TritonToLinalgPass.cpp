@@ -28,8 +28,14 @@ using namespace mlir;
 using namespace triton;
 
 #define GEN_PASS_CLASSES
+
 #include "triton-shared/Conversion/TritonToLinalg/Passes.h.inc"
 
+constexpr static char AttrNumWarpsName[] = "triton_gpu.num-warps";
+constexpr static char AttrNumCTAsName[] = "triton_gpu.num-ctas";
+constexpr static char AttrTargetName[] = "triton_gpu.target";
+
+constexpr static char AttrNumThreadsPerWarp[] = "triton_gpu.threads-per-warp";
 namespace {
 
 class TritonTypeConverter : public TypeConverter {
@@ -224,8 +230,67 @@ public:
     }
   }
 };
+
+
+class AddTritonGPUAttrPass
+    : public AddTritonGPUAttrBase<AddTritonGPUAttrPass> {
+public:
+  AddTritonGPUAttrPass() = default;
+  // constructor with some parameters set explicitly.
+  AddTritonGPUAttrPass(const std::string &target, int numWarps,
+                           int threadsPerWarp, int numCTAs) {
+    this->numWarps = numWarps;
+    this->threadsPerWarp = threadsPerWarp;
+    this->numCTAs = numCTAs;
+    this->target = target;
+  }
+
+  void runOnOperation() override {
+    MLIRContext *context = &getContext();
+    ModuleOp mod = getOperation();
+
+    auto i32_ty = IntegerType::get(mod->getContext(), 32);
+
+    mod->setAttr(
+        AttrNumWarpsName,
+        IntegerAttr::get(i32_ty, llvm::APInt(32, numWarps.getValue())));
+    mod->setAttr(
+        AttrNumThreadsPerWarp,
+        IntegerAttr::get(i32_ty, llvm::APInt(32, threadsPerWarp.getValue())));
+
+    mod->setAttr(AttrNumCTAsName,
+                 IntegerAttr::get(i32_ty, llvm::APInt(32, numCTAs.getValue())));
+
+    if (this->target.getValue().empty()) {
+      mod.emitError("expected target specification to attach to the module op");
+      return signalPassFailure();
+    }
+    mod->setAttr(AttrTargetName,
+                 StringAttr::get(context, this->target.getValue()));
+
+    // update layouts
+    //  broadcast src => multicast, dst => broadcasted
+    // if (failed(target.refineLayouts(mod, numWarps)))
+    //   return signalPassFailure();
+  }
+};
+
 } // namespace
 
 std::unique_ptr<OperationPass<ModuleOp>> triton::createTritonToLinalgPass() {
   return std::make_unique<TritonToLinalgPass>();
+}
+
+std::unique_ptr<OperationPass<ModuleOp>>
+mlir::triton::createAddTritonGPUAttrPass(const std::string &target,
+                                                 int numWarps,
+                                                 int threadsPerWarp,
+                                                 int numCTAs) {
+  return std::make_unique<::AddTritonGPUAttrPass>(target, numWarps,
+                                                      threadsPerWarp, numCTAs);
+}
+
+std::unique_ptr<OperationPass<ModuleOp>>
+mlir::triton::createAddTritonGPUAttrPass() {
+  return std::make_unique<::AddTritonGPUAttrPass>();
 }

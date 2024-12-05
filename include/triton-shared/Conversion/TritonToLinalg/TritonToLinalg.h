@@ -20,6 +20,15 @@ namespace triton {
 
 std::unique_ptr<OperationPass<ModuleOp>> createTritonToLinalgPass();
 
+std::unique_ptr<OperationPass<ModuleOp>>
+createAddTritonGPUAttrPass(const std::string &target,
+                                                 int numWarps,
+                                                 int threadsPerWarp,
+                                                 int numCTAs);
+
+std::unique_ptr<OperationPass<ModuleOp>>
+createAddTritonGPUAttrPass();
+
 void populateTritonToLinalgCanonicalizationPatterns(
     RewritePatternSet &patterns);
 

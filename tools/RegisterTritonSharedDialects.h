@@ -43,6 +43,7 @@ inline void registerTritonSharedDialects(mlir::DialectRegistry &registry) {
   mlir::test::registerTestAllocationPass();
   mlir::test::registerTestMembarPass();
   mlir::triton::registerTritonToLinalgPass();
+  mlir::triton::registerAddTritonGPUAttrPass();
   mlir::triton::registerTritonToLinalgExperimentalPass();
   mlir::triton::registerTritonToStructuredPass();
   mlir::triton::registerTritonArithToLinalgPasses();
